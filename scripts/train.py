@@ -14,16 +14,15 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings("error", category=RuntimeWarning)
 import os
+import pathlib
 
 # ML package
 import torch # basic tensor operation
 from torch.utils.data import DataLoader # build dataset and dataloader
-
 import torch.optim as optim # optimizer
 
 
 import copy
-import cv2
 import argparse
 
 from get_data import Mydataset
@@ -35,12 +34,18 @@ from model import Unet
 def parse_args():
     p = argparse.ArgumentParser(description='Parameters for training model')
     p.add_argument("--data_path",type=str,required=True,help='Saving path of MRI scans')
-    p.add_argument("--loss_type",default='cce',type=str,choices=['cce','dice','dice+cce','ftl+cce'],required=True,help='Loss mode')
-    p.add_argument("--lr",default=1e-3,type=float,required=True,help='Learning rate for training')
+    p.add_argument("--loss_type",type=str,choices=['cce','dice','dice+cce','ftl+cce'],required=True,help='Loss mode')
     p.add_argument('--epoch',type=int,required=True,help='Epoch number of the training')
+    
+
+    p.add_argument("--lr",default=1e-3,type=float,help='Learning rate for training')
+    p.add_argument('--use_scheduler',action='store_true')
+
     p.add_argument('--batch_size',default=32,type=int)
     p.add_argument('--seed',default=42,type=int)
-    p.add_argument
+
+    p.add_argument('--use_checkpoint',action='store_true',help='Whether use check point or not')
+    p.add_argument('--checkpoint_file',type=str,help='Check point file to use')
 
     return p.parse_args()
 
@@ -131,7 +136,7 @@ def model_training(model,optimizer,epoch,dl_train,dl_val,lr_scheduler,device,los
             best_model = copy.deepcopy(model)
             best_model_path = save_path
         
-        if lr_scheduler:
+        if lr_scheduler!=None:
             lr_scheduler.step(val_dice)
 
         
@@ -146,7 +151,7 @@ def main():
     args = parse_args()
 
     train_names,val_names,test_names = pre.get_train_val_test_names(args.data_path)
-    ds_train = Mydataset(args.data_path,train_names)
+    ds_train = Mydataset(pathlib.Path(args.data_path),train_names)
     dl_train = DataLoader(ds_train)
 
     ds_val = Mydataset(args.data_path,val_names)
@@ -154,10 +159,17 @@ def main():
 
     # model initialization
     model = Unet()
+    if args.use_checkpoint:
+        if args.checkpoint_file==None:
+            raise ValueError('No checkpoint file, please provided')
+        checkpoint = torch.load(args.checkpoint_file,weights_only=True)
+        model.load_state_dict(checkpoint['model'])
 
     # optimizer and scheduler
     optimizer = optim.Adam(model.parameters(),lr=args.lr)
-    if args.scheduler:
+
+    if args.use_scheduler:
+        print('Use ReduceLROnPlateau scheduler')
         lr_scheduler=optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max',factor=0.5,patience=7,min_lr=0.000001)
     else:
         lr_scheduler=None
@@ -167,12 +179,11 @@ def main():
 
     # device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
     training_output = model_training(model,optimizer,args.epoch,dl_train,dl_val,lr_scheduler,device,loss_fn,pre.dice_coef)
 
     with open('training_results.pkl','wb') as f:
         pickle.dump(training_output,f)
-
-    
+ 
 if __name__ == '__main__':
     main()
+    print('Training finished')
