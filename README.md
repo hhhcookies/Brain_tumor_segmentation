@@ -2,7 +2,7 @@
 
 This is a pytorch UNET based CNN for brain tumor segmentaiton 
 
-**Environments:**  
+**Environments:**    
 environments.yaml
 
 **NN Framework:**  
@@ -16,7 +16,7 @@ model.py: class to generate UNET architecture
 preprocess.py: all auxiliary functions defined to process the data
 train.py: run directly from the command line, train CNN from personalized files/hyperparameters/checkpoints
 
-**model architecture:**  
+**model architecture:**    
 The UNET model architecture follows: https://arxiv.org/abs/1505.04597;
 Downsampling to to 512 channels before upsampling to avoid overfitting
 Dropout regularization applied in both encoder and decoder with p=0.2
