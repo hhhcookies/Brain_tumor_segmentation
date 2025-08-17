@@ -28,11 +28,8 @@ original UNET architecture from https://arxiv.org/abs/1505.04597;
 
 
 
-**Infer example:**
-![Demo figure](assets/figures/Infer_example.PNG)
-<p align="center">
-    <img src="assets/figures/Infer_example.PNG" alt="Demo" width="60%">
-</p>
+**Infer example:**  
+<img src="assets/figures/Infer_example.PNG" alt="Demo" width="400">
 
 
 
