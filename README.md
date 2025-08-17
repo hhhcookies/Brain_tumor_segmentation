@@ -22,4 +22,5 @@ Downsampling to to 512 channels before upsampling to avoid overfitting
 Dropout regularization applied in both encoder and decoder with p=0.2
 Dropout regularization applied in the bottleneck connection with p=0.4
 
-![alt text](image.png)
+<img width="265" height="109" alt="image" src="https://github.com/user-attachments/assets/201a2b0b-ee56-448e-8da6-ac979fb0d226" />
+
