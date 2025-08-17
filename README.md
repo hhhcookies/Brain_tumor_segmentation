@@ -1,6 +1,6 @@
 # Brain tumor segmentation using UNET
 
-This is a pytorch UNET based CNN for brain tumor segmentaiton 
+A pytorch UNET based CNN for brain tumor segmentaiton 
 
 **Environments:**  
 environments.yaml
@@ -20,7 +20,12 @@ train.py: run directly from the command line, train CNN from personalized files/
 The UNET model architecture follows: https://arxiv.org/abs/1505.04597;  
 Downsampling to to 512 channels before upsampling to avoid overfitting  
 Dropout regularization applied in both encoder and decoder with p=0.2  
-Dropout regularization applied in the bottleneck connection with p=0.4  
+Dropout regularization applied in the bottleneck connection with p=0.4
+
+
+original UNET architecture from https://arxiv.org/abs/1505.04597;  
+<img width="704" height="456" alt="image" src="https://github.com/user-attachments/assets/4f2d8031-685d-46aa-8362-79e68dbeecfc" />
+
 
 
 
