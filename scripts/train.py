@@ -37,11 +37,16 @@ def parse_args():
     p.add_argument("--loss_type",type=str,choices=['cce','dice','dice+cce','ftl+cce'],required=True,help='Loss mode')
     p.add_argument('--epoch',type=int,required=True,help='Epoch number of the training')
     
-
+    # hyper_parameters
     p.add_argument("--lr",default=1e-3,type=float,help='Learning rate for training')
     p.add_argument('--use_scheduler',action='store_true')
+    p.add_argument('--batch_size',default=1,type=int)
+    p.add_argument('--dice_weight',default=0.7,type=float,help='Dice loss weight')
+    p.add_argument('--tversky_weight',default=0.7,type=float,help='tversky loss weight')
+    p.add_argument('--tversky_alpha',default=0.3,type=float,help='False positive weight in tversky score')
+    p.add_argument('--tversky_beta',default=0.7,type=float,help='False negative weight in tversky score')
+    p.add_argument('--tversky_gamma',default=0.9,type=float,help='Focal exponential in tversky score')
 
-    p.add_argument('--batch_size',default=32,type=int)
     p.add_argument('--seed',default=42,type=int)
 
     p.add_argument('--use_checkpoint',action='store_true',help='Whether use check point or not')
@@ -151,11 +156,15 @@ def main():
     args = parse_args()
 
     train_names,val_names,test_names = pre.get_train_val_test_names(args.data_path)
+
+    print('Saving test set folder names for later inference')
+    np.save('test_names',test_names)
+
     ds_train = Mydataset(pathlib.Path(args.data_path),train_names)
-    dl_train = DataLoader(ds_train)
+    dl_train = DataLoader(ds_train,batch_size=args.batch_size)
 
     ds_val = Mydataset(args.data_path,val_names)
-    dl_val = DataLoader(ds_val)
+    dl_val = DataLoader(ds_val,batch_size=args.batch_size)
 
     # model initialization
     model = Unet()
@@ -175,7 +184,10 @@ def main():
         lr_scheduler=None
     
     # loss function
-    loss_fn = Loss(args.loss_type,tversky_weight=0.7)
+    loss_fn = Loss(args.loss_type,dice_weight=args.dice_weight,tversky_weight=args.tversky_weight,
+                   alpha=args.tversky_alpha,
+                   beta = args.tversky_beta,
+                   gamma = args.tversky_gamma)
 
     # device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
