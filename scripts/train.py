@@ -48,7 +48,6 @@ def parse_args():
     p.add_argument('--tversky_gamma',default=0.9,type=float,help='Focal exponential in tversky score')
 
     p.add_argument('--seed',default=42,type=int)
-
     p.add_argument('--use_checkpoint',action='store_true',help='Whether use check point or not')
     p.add_argument('--checkpoint_file',type=str,help='Check point file to use')
 
@@ -191,6 +190,7 @@ def main():
 
     # device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(f'using {device} for training')
     training_output = model_training(model,optimizer,args.epoch,dl_train,dl_val,lr_scheduler,device,loss_fn,pre.dice_coef)
 
     with open('training_results.pkl','wb') as f:
