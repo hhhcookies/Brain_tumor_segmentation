@@ -35,7 +35,6 @@ def split(volume_saving_path,ratio):
 
     return train_names, test_names
 
-
 def get_file(path,suffix):
     """
     Get the file path that ends with suffix, used to select _flair.nii or _t1ce.nii file
@@ -77,8 +76,8 @@ def model_validation(model,dl_val,device,metric,loss_func):
 
     for batch in dl_val:
             
-        img = batch[0][0].to(device)
-        mask = batch[1][0].to(device)
+        img = batch[0].to(device) # N 2 H W
+        mask = batch[1].to(device) # N H W
 
         with torch.no_grad():
 
@@ -113,61 +112,61 @@ def dice_coef(y_pred,y_true,smooth=1e-7):
         dice coefficient of the current batch
     """
 
-    class_num = y_pred.shape[1] 
-    cls_ids = range(1,class_num)
+    class_num = y_pred.shape[1] #class_num=4 
 
-    y_prob = F.softmax(y_pred,dim=1).permute(0,2,3,1)
-    y_true_onehot = F.one_hot(y_true,num_classes = class_num)
-    batch_dice=0
+    y_prob = torch.argmax(F.softmax(y_pred,dim=1),dim=1) # N,H,W
+    y_prob = F.one_hot(y_prob,num_classes=class_num).float() #N H W C
+    y_true_onehot = F.one_hot(y_true,num_classes = class_num).float()#N H W C
 
-    for i in range(class_num):
-        pred_flatten = y_prob[:,:,:,i].flatten()
-        gt_flatten = y_true_onehot[:,:,:,i].flatten()
-        
-        intersection = torch.sum(pred_flatten*gt_flatten)
-        union = torch.sum(pred_flatten)+torch.sum(gt_flatten)
+    inter = (y_prob * y_true_onehot).sum(dim=(0,1,2)) # [C]
 
-        batch_dice += (2*intersection)/(union+smooth)
+    predsum =  y_prob.sum(dim=(0,1,2))        #[C]
+    gtsum = y_true_onehot.sum(dim=(0,1,2))    #[C]
 
-    return batch_dice/class_num
+    dice = (2*inter+smooth)/(predsum+gtsum+smooth)   #[C] dice per class
+    dice = dice[1:]   #[C-1], bg excluded
+    
+    present = gtsum[1:]>0 #[C-1],bg excluded
+    dice = dice[present] if present.any() else dice
+
+    return dice.mean()
 
 def dice_coef_necrotic(y_pred,y_true,epsilon=1e-6):
 
-    y_prob = F.softmax(y_pred,dim=1).permute(0,2,3,1)
-    y_pred_f = torch.flatten(y_prob[:,:,:,1])
+    y_prob = F.softmax(y_pred,dim=1).permute(0,2,3,1)   # B H W C
+    y_prob_f = torch.flatten(y_prob[:,:,:,1])
 
     y_true_onehot = F.one_hot(y_true,num_classes = y_pred.shape[1])
     y_true_f = torch.flatten(y_true_onehot[:,:,:,1])
 
-    intersection = torch.sum(y_pred_f*y_true_f)+epsilon
-    union = torch.sum(y_pred_f)+torch.sum(y_true_f)+epsilon
+    intersection = torch.sum(y_prob_f*y_true_f)+epsilon
+    union = torch.sum(y_prob_f)+torch.sum(y_true_f)+epsilon
     dice = 2*intersection/union
     return dice 
 
 def dice_coef_edema(y_pred,y_true,epsilon=1e-6):
 
     y_prob = F.softmax(y_pred,dim=1).permute(0,2,3,1)
-    y_pred_f = torch.flatten(y_prob[:,:,:,2])
+    y_prob_f = torch.flatten(y_prob[:,:,:,2])
 
     y_true_onehot = F.one_hot(y_true,num_classes = y_pred.shape[1])
     y_true_f = torch.flatten(y_true_onehot[:,:,:,2])
 
-    intersection = torch.sum(y_pred_f*y_true_f)+epsilon
-    union = torch.sum(y_pred_f)+torch.sum(y_true_f)+epsilon
+    intersection = torch.sum(y_prob_f*y_true_f)+epsilon
+    union = torch.sum(y_prob_f)+torch.sum(y_true_f)+epsilon
     dice = 2*intersection/union
-    return dice 
-
+    return dice
 
 def dice_coef_enchancing(y_pred,y_true,epsilon=1e-6):
 
     y_prob = F.softmax(y_pred,dim=1).permute(0,2,3,1)
-    y_pred_f = torch.flatten(y_prob[:,:,:,3])
+    y_prob_f = torch.flatten(y_prob[:,:,:,3])
 
     y_true_onehot = F.one_hot(y_true,num_classes = y_pred.shape[1])
     y_true_f = torch.flatten(y_true_onehot[:,:,:,3])
 
-    intersection = torch.sum(y_pred_f*y_true_f)+epsilon
-    union = torch.sum(y_pred_f)+torch.sum(y_true_f)+epsilon
+    intersection = torch.sum(y_prob_f*y_true_f)+epsilon
+    union = torch.sum(y_prob_f)+torch.sum(y_true_f)+epsilon
     dice = 2*intersection/union
     return dice 
 
